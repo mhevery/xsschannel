@@ -11,12 +11,13 @@ $(document).ready(function(){
     $("pre").append(msg + "\n");
     send("Received: " + msg);
   });
+  $("h2 span").text(send.url);
 });
 </script>
   </head>
 <body>
-  <h1>Client: </h1>
-  <pre>
-  </pre>
+  <h1>Client:</h1>
+  <h2>Parent: <span></span></h2>
+  <pre></pre>
 </body>
 </html>

@@ -10,6 +10,7 @@ $(document).ready(function(){
   send = xsschannel.connect("client.html", function(msg){
     $("pre").append(msg + "\n");
   });
+  $("h2 span").text(send.url);
   $("#client").append(send.iframe);
 });
 </script>
@@ -17,7 +18,7 @@ $(document).ready(function(){
 <body>
   <h1>XSS Channel Testing Dashboard</h1>
   
-  <h2>Same origin on file://</h2>
+  <h2>Same origin on <span>?</span></h2>
   <div id="client">
     <div>
       <button onclick="send('Msg1')">Send: Msg1</button>

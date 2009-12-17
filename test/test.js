@@ -6,13 +6,11 @@ XssChannel.prototype.setUp = function () {
   this.window = {
     parent: {
       location:{
-        href:"http://server/parent.html",
-        hash:""
+        href:"http://server/parent.html"
       }
     },
     location:{
-      href:"http://server/parent.html",
-      hash:""
+      href:"http://server/parent.html"
     },
     setTimeout:function(fn, delay){self.timeout={fn:fn, delay:delay};},
     history:{
@@ -29,6 +27,7 @@ XssChannel.prototype.testParentShouldCreateAnIframe = function (){
   var send = xsschannel.connect("http://server/client.html", this.receive, this.window);
   assertTrue(!!send);
   assertTrue(!!send.iframe);
+  assertEquals("http://server/client.html", send.url);
   assertEquals(
       "http://server/client.html#$XSS$:0:0:"+encodeURIComponent("http://server/parent.html"), 
       send.iframe.src);
@@ -46,7 +45,7 @@ XssChannel.prototype.testParentShouldSendMessageToClient = function(){
 
 XssChannel.prototype.testParentShouldReceiveMessageToClient = function(){
   var send = xsschannel.connect("http://server/client.html", this.receive, this.window);
-  this.window.location.hash = "#$XSS$:1:1:Hello";
+  this.window.location.href = "#$XSS$:1:1:Hello";
   this.timeout.fn();
   assertEquals(["Hello"], this.received);
   assertEquals(
@@ -56,9 +55,10 @@ XssChannel.prototype.testParentShouldReceiveMessageToClient = function(){
 };
 
 XssChannel.prototype.testClientShouldSendMessageToParent = function(){
-  this.window.location.hash = "#$XSS$:0:0:"+encodeURIComponent("http://server/parent.html");
+  this.window.location.href = "http://server#$XSS$:0:0:"+encodeURIComponent("http://server/parent.html");
   var send = xsschannel.listen(this.receive, this.window);
-  assertEquals("", this.window.location.hash);
+  assertEquals("http://server#", this.window.location.href);
+  assertEquals("http://server/parent.html", send.url);
   send("ping");
   assertEquals(
       "http://server/parent.html#$XSS$:1:1:ping", 

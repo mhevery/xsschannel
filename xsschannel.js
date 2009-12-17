@@ -30,25 +30,28 @@
   var globalWindow = window;
   xsschannel = {};
   var xssMessageListener = function(){};
-  function isXssMsg(hash) {return hash.substr(1, PREFIX.length) == PREFIX;}
+  function parseHref(href) {
+    var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*)$/);
+    return match ? {url:match[1], i:match[2], n:match[3], msg:decodeURIComponent(match[4])} : false;
+  }
 
   function watchURL(window){
-    var last = "";
+    var location = window.location;
+    var last = location.href;
     function pull(){
-      var hash = window.location.hash;
-      if (last != hash) {
-        if (isXssMsg(hash)) {
-          var parts = hash.split(':');
-          if (xssMessageListener(parts[1], parts[2], parts[3])) {
-            window.history.go(-1);
+      var href = location.href;
+      if (last != href) {
+        var hash = parseHref(href);
+        if (hash) {
+          if (xssMessageListener(hash.i, hash.n, hash.msg)) {
+            window.history.back();
           } else {
-            window.location.hash = last;
+            location.href = last;
           }
-        } else {
-          last = hash;
         }
+        last = location.href;
       }
-      window.setTimeout(pull, 50);
+      window.setTimeout(pull, 20);
     };
     pull();
   }
@@ -58,7 +61,7 @@
     xssMessageListener = function(i, n, part){
       if (i==0 && n==0 && part == "ACK") {
       } else {
-        callback(decodeURIComponent(part));
+        callback(part);
         setHref(0, 0, "ACK");
       }
       return rollback;
@@ -77,18 +80,22 @@
     setHref(0,0,window.location.href.split('#')[0]);
     var send = channel(setHref, callback, window, true);
     send.iframe = iframe;
+    send.url = iframe.src.split("#")[0];
     return send;
   };
   
   xsschannel.listen = function(callback, window){
     window = window || globalWindow;
-    if (!isXssMsg(window.location.hash)) throw "Window not loaded as an iframe of xsschannel";
-    var baseUrl = decodeURIComponent(window.location.hash.split(':')[3]) + "#" + PREFIX;
+    var href = parseHref(window.location.href);
+    if (!href) throw "Window not loaded as an iframe of xsschannel";
+    var baseUrl = href.msg + "#" + PREFIX;
     function setHref(i , n , msg) {
       window.parent.location.href  = [baseUrl, i , n, encodeURIComponent(msg)].join(":");
     }
-    window.location.hash = "";
-    return channel(setHref, callback, window, false);
+    window.location.href = href.url + "#";
+    var send = channel(setHref, callback, window, true);
+    send.url = href.msg;
+    return send;
   };
   
 })();

@@ -1,3 +1,14 @@
 iframe {
   border: 2px solid gray;
+  width: 100%;
+}
+
+H1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+H2 {
+  font-size: 15px;
+  margin: 0;
 }
