@@ -72,11 +72,7 @@
         log("CHANGE", href, hash);
         if (hash) {
           xssMessageListener(hash);
-          if (false) {
-            window.history.back();
-          } else {
-            location.href = last;
-          }
+          location.href = last;
         }
         last = location.href;
       }
