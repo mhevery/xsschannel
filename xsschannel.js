@@ -157,7 +157,7 @@
     send.url = url;
     var name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
     var div = document.createElement('div') ;
-    div.innerHTML = '<iframe name="' + name + ' src="'+url+'#">';
+    div.innerHTML = '<iframe name="' + name + '" src="'+url+'#">';
     send.iframe = div.childNodes[0];
     send.iframe.src = url + "#";
     send.iframe.name = name; 
