@@ -45,8 +45,10 @@
   var globalWindow = window;
   var PREFIX = "$XSS$";
   var xssMessageListener = function(){};
+  var delay = 20;
+  var maxMsgSize = 1800;
   function log(a, b) {
-    //console.log(a, b);
+//    console.log(a, b);
   }
   function parseHref(href) {
     var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*):(.*):(.*)$/);
@@ -69,7 +71,8 @@
         var hash = parseHref(href);
         log("CHANGE", href, hash);
         if (hash) {
-          if (xssMessageListener(hash)) {
+          xssMessageListener(hash);
+          if (false) {
             window.history.back();
           } else {
             location.href = last;
@@ -77,7 +80,7 @@
         }
         last = location.href;
       }
-      window.setTimeout(pull, 20);
+      window.setTimeout(pull, delay);
     };
     pull();
   }
@@ -93,11 +96,20 @@
       flushEnabled = true;
     }
     function enqueue(msg) {
-      if (msg === ACK && queue.length > 0) return;
-      log("enqueue:", msg);
-      queue.push(msg);
+      if (msg === ACK) {
+        if (queue.length > 0) return;
+        queue.push(ACK);
+      } else {
+        log("enqueue:", msg);
+        msg = encodeURIComponent(msg);
+        var i = 0;
+        var n = Math.ceil(msg.length / maxMsgSize);
+        for ( var i = 0; i < n; i++) {
+          queue.push({i:i, n:n-1, msg:msg.substr(i * maxMsgSize, maxMsgSize)});
+        }
+      }
     }
-    function flush (msg) {
+    function flush(msg) {
       if (flushEnabled && queue.length > 0) {
         var msg = queue[0];
         if (msg === ACK) {
@@ -105,7 +117,7 @@
           queue.shift();
         } else {
           flushEnabled = false;
-          setHref(1, 1, encodeURIComponent(msg));
+          setHref(msg.i, msg.n, msg.msg);
         }
         log("sending:", msg);
       }
@@ -117,20 +129,24 @@
     send.expectedSeq = 0;
     send.queue = queue;
     send.pending = false;
+    var part = "";
     xssMessageListener = function(hash){
-      console.log(hash, send.expectedSeq);
+      log(hash, send.expectedSeq);
       if (hash.seq == send.expectedSeq) {
         send.expectedSeq ++;
         dequeue();
         if (!hash.isAck) {
-          callback(decodeURIComponent(hash.msg));
+          part += hash.msg;
+          if (hash.i == hash.n) {
+            callback(decodeURIComponent(part));
+            part = "";
+          }
           enqueue(ACK);
         }
         flush();
       } else {
         log("BROKEN SEQ expected:" + send.expectedSeq + " was " + hash.seq);
       }
-      return false;
     };
     return send;
   }
