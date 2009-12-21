@@ -23,18 +23,40 @@
  * THE SOFTWARE.
  * 
  * ==============================================================================
+ * 
+ * Message format:
+ *   id:seq:i:n:msg
+ *   
+ *   id -> unique identifier which will allow the source to identify
+ *         destination of the message
+ *   seq-> monotonicaly increasing sequence number
+ *   i  -> message fragment number
+ *   n  -> number of message fragments
+ *   msg-> Payload message
+ *   
+ * Protocol:
+ *   each request needs to be acknowledged before next request 
+ *   can be sent.
+ * 
  */
 
 (function(){
-  var PREFIX = "$XSS$";
-  var globalWindow = window;
   xsschannel = {};
+  var globalWindow = window;
+  var PREFIX = "$XSS$";
   var xssMessageListener = function(){};
   function parseHref(href) {
-    var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*)$/);
-    return match ? {url:match[1], i:match[2], n:match[3], msg:decodeURIComponent(match[4])} : false;
+    var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*):(.*):(.*)$/);
+    return match ? {
+      url:match[1], 
+      id: match[2],
+      seq: match[3],
+      i:match[4], 
+      n:match[5], 
+      msg:match[6],
+      isAck: match[4]==0 && match[5]==0 && match[6] == "ACK"} : false;
   }
-
+  
   function watchURL(window){
     var location = window.location;
     var last = location.href;
@@ -42,8 +64,9 @@
       var href = location.href;
       if (last != href) {
         var hash = parseHref(href);
+        console.log("CHANGE", href, hash);
         if (hash) {
-          if (xssMessageListener(hash.i, hash.n, hash.msg)) {
+          if (xssMessageListener(hash)) {
             window.history.back();
           } else {
             location.href = last;
@@ -51,51 +74,87 @@
         }
         last = location.href;
       }
-      window.setTimeout(pull, 20);
+      window.setTimeout(pull, 2000);
     };
     pull();
   }
   
-  function channel(setHref, callback, window, rollback) {
+  function channel(callback, window, setHref) {
     watchURL(window);
-    xssMessageListener = function(i, n, part){
-      if (i==0 && n==0 && part == "ACK") {
-      } else {
-        callback(part);
-        setHref(0, 0, "ACK");
+    var ACK = {};
+    var queue = [];
+    var flushEnabled = true;
+    function dequeue(msg) {
+      var msg = queue.shift();
+      console.log("dequeue:", msg);
+      flushEnabled = true;
+    }
+    function enqueue(msg) {
+      if (msg === ACK && queue.length > 0) return;
+      console.log("enqueue:", msg);
+      queue.push(msg);
+    }
+    function flush (msg) {
+      if (flushEnabled && queue.length > 0) {
+        var msg = queue[0];
+        if (msg === ACK) {
+          setHref(0, 0, "ACK");
+          queue.shift();
+        } else {
+          flushEnabled = false;
+          setHref(1, 1, encodeURIComponent(msg));
+        }
+        console.log("sending:", msg);
       }
-      return rollback;
+    }
+    function send (msg){
+      enqueue(msg);
+      flush();
     };
-    return function sendFn (msg){
-      setHref(1, 1, msg);
+    send.expectedSeq = 0;
+    send.queue = queue;
+    send.pending = false;
+    xssMessageListener = function(hash){
+      console.log(hash, send.expectedSeq);
+      if (hash.seq == send.expectedSeq) {
+        send.expectedSeq ++;
+        dequeue();
+        if (!hash.isAck) {
+          callback(decodeURIComponent(hash.msg));
+          enqueue(ACK);
+        }
+        flush();
+      } else {
+        console.log("BROKEN SEQ expected:" + send.expectedSeq + " was " + hash.seq);
+      }
+      return false;
     };
+    return send;
   }
   
   xsschannel.connect = function (url, callback, window) {
     window = window || globalWindow;
-    var iframe = document.createElement("iframe");
-    function setHref(i , n , msg) {
-      iframe.src  = [url + "#" + PREFIX, i , n, encodeURIComponent(msg)].join(":");
-    }
-    setHref(0,0,window.location.href.split('#')[0]);
-    var send = channel(setHref, callback, window, true);
-    send.iframe = iframe;
-    send.url = iframe.src.split("#")[0];
+    var send = channel(callback, window, function(i , n , msg) {
+      send.iframe.src  = [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
+    });
+    send.id = (""+window.Math.random()).substring(2);
+    send.seq = 0;
+    send.url = url;
+    send.iframe = document.createElement("iframe");
+    send.iframe.src = url + "#";
+    send.iframe.name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]); 
     return send;
   };
   
   xsschannel.listen = function(callback, window){
     window = window || globalWindow;
-    var href = parseHref(window.location.href);
-    if (!href) throw "Window not loaded as an iframe of xsschannel";
-    var baseUrl = href.msg + "#" + PREFIX;
-    function setHref(i , n , msg) {
-      window.parent.location.href  = [baseUrl, i , n, encodeURIComponent(msg)].join(":");
-    }
-    window.location.href = href.url + "#";
-    var send = channel(setHref, callback, window, true);
-    send.url = href.msg;
+    var send = channel(callback, window, function (i, n, msg) {
+      window.parent.location.href =
+        [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
+    });
+    send.seq = 0;
+    send.url = decodeURIComponent(window.name.split(":")[1]);
+    send.id = window.name.split(":")[0];
     return send;
   };
-  
 })();

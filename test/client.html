@@ -7,9 +7,11 @@
     <link rel="stylesheet" type="text/css" href="style.css" />
 <script>
 $(document).ready(function(){
+  count = 0;
   send = xsschannel.listen(function(msg){
     $("pre").append(msg + "\n");
-    send("Received: " + msg);
+    if (msg=="hello")
+      send("hello back!");
   });
   $("h2 span").text(send.url);
 });
@@ -18,6 +20,7 @@ $(document).ready(function(){
 <body>
   <h1>Client:</h1>
   <h2>Parent: <span></span></h2>
+  <button onclick="send('ping' + (count++))">Ping</button>
   <pre></pre>
 </body>
 </html>
