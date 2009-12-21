@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="style.css" />
 <script>
 $(document).ready(function(){
+  count = 0;
   send = xsschannel.connect("client.html", function(msg){
     $("pre").append(msg + "\n");
   });
@@ -21,8 +22,8 @@ $(document).ready(function(){
   <h2>Same origin on <span>?</span></h2>
   <div id="client">
     <div>
-      <button onclick="send('hello')">Hello</button>
-      <button onclick="send('bye')">Bye</button>
+      <button onclick="send('hello' + (count++))">Hello</button>
+      <button onclick="send('bye' + (count++))">Bye</button>
     </div>
   </div>
   <pre></pre>

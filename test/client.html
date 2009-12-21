@@ -10,8 +10,8 @@ $(document).ready(function(){
   count = 0;
   send = xsschannel.listen(function(msg){
     $("pre").append(msg + "\n");
-    if (msg=="hello")
-      send("hello back!");
+    if (msg.substring(0, 5) =="hello")
+      send(msg + " back!");
   });
   $("h2 span").text(send.url);
 });

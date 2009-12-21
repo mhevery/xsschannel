@@ -45,6 +45,9 @@
   var globalWindow = window;
   var PREFIX = "$XSS$";
   var xssMessageListener = function(){};
+  function log(a, b) {
+    //console.log(a, b);
+  }
   function parseHref(href) {
     var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*):(.*):(.*)$/);
     return match ? {
@@ -64,7 +67,7 @@
       var href = location.href;
       if (last != href) {
         var hash = parseHref(href);
-        console.log("CHANGE", href, hash);
+        log("CHANGE", href, hash);
         if (hash) {
           if (xssMessageListener(hash)) {
             window.history.back();
@@ -74,7 +77,7 @@
         }
         last = location.href;
       }
-      window.setTimeout(pull, 2000);
+      window.setTimeout(pull, 20);
     };
     pull();
   }
@@ -86,12 +89,12 @@
     var flushEnabled = true;
     function dequeue(msg) {
       var msg = queue.shift();
-      console.log("dequeue:", msg);
+      log("dequeue:", msg);
       flushEnabled = true;
     }
     function enqueue(msg) {
       if (msg === ACK && queue.length > 0) return;
-      console.log("enqueue:", msg);
+      log("enqueue:", msg);
       queue.push(msg);
     }
     function flush (msg) {
@@ -104,7 +107,7 @@
           flushEnabled = false;
           setHref(1, 1, encodeURIComponent(msg));
         }
-        console.log("sending:", msg);
+        log("sending:", msg);
       }
     }
     function send (msg){
@@ -125,7 +128,7 @@
         }
         flush();
       } else {
-        console.log("BROKEN SEQ expected:" + send.expectedSeq + " was " + hash.seq);
+        log("BROKEN SEQ expected:" + send.expectedSeq + " was " + hash.seq);
       }
       return false;
     };
