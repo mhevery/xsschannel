@@ -155,9 +155,12 @@
     send.id = (""+window.Math.random()).substring(2);
     send.seq = 0;
     send.url = url;
-    send.iframe = document.createElement("iframe");
+    var name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
+    var div = document.createElement('div') ;
+    div.innerHTML = '<iframe name="' + name + ' src="'+url+'#">';
+    send.iframe = div.childNodes[0];
     send.iframe.src = url + "#";
-    send.iframe.name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]); 
+    send.iframe.name = name; 
     return send;
   };
   
