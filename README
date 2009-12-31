@@ -2,10 +2,11 @@
 = OVERVIEW =
 ============
 
-XssChannel is a library which allows you to securely communicate between 
-iframes from different domains. The library uses HTML5 postMessage if
-available or gracefully down-grades to cross site communication with
-iframe URL hashes and breaking large requests as described here: 
+XssChannel is a library which allows you to securely communicate 
+between iframes from different domains. The library uses HTML5 
+postMessage if available or gracefully down-grades to cross site 
+communication with iframe URL hashes (breaking large requests into 
+parts) as described here: 
 http://softwareas.com/cross-domain-communication-with-iframes
 
 
