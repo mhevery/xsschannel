@@ -48,7 +48,7 @@
   var delay = 20;
   var maxMsgSize = 1800;
   function log(a, b) {
-//    console.log(a, b);
+    console.log(a, b);
   }
   function parseHref(href) {
     var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*):(.*):(.*)$/);
@@ -72,6 +72,9 @@
         log("CHANGE", href, hash);
         if (hash) {
           xssMessageListener(hash);
+          if (last.indexOf('#') < 0) {
+            last += "#";
+          }
           location.href = last;
         }
         last = location.href;
