@@ -87,7 +87,7 @@
     pull();
   }
   
-  function channel(id, callback, window, setHref) {
+  function channelHash(id, callback, window, setHref) {
     watchURL(window);
     var ACK = {};
     var queue = [];
@@ -154,27 +154,49 @@
     return send;
   }
   
+  function channelPostMessage(id, callback, window, dstContainer) {
+    window.addEventListener("message", function(event){
+      var msg = event.data;
+      var index = msg.indexOf(":");
+      if (index > 0 && id == msg.substring(0, index)) {
+        callback(msg.substring(index + 1));
+      }
+    }, false);
+    return function(msg){
+      dstContainer.contentWindow.postMessage(id + ":" + msg, "*");
+    };
+  }
+  
+  function channel(id, callback, window, dstContainer, setHref) {
+    if (typeof window.postMessage == 'function') {
+      return channelPostMessage(id, callback, window, dstContainer);
+    } else {
+      return channelHash(id, callback, window, setHref);
+    }
+  }
+  
   xsschannel.connect = function (url, callback, window) {
     window = window || globalWindow;
+
     var id = (""+window.Math.random()).substring(2);
-    var send = channel(id, callback, window, function(i , n , msg) {
+    var name = id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
+    var div = document.createElement('div') ;
+    div.innerHTML = '<iframe name="' + name + '" src="'+url+'#" style="display:none;">';
+    var iframe = div.childNodes[0];
+    
+    var send = channel(id, callback, window, iframe, function(i , n , msg) {
       send.iframe.src  = [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
     });
     send.seq = 0;
     send.url = url;
-    var name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
-    var div = document.createElement('div') ;
-    div.innerHTML = '<iframe name="' + name + '" src="'+url+'#">';
-    send.iframe = div.childNodes[0];
-    send.iframe.src = url + "#";
-    send.iframe.name = name; 
+    send.iframe = iframe;
     return send;
   };
   
   xsschannel.listen = function(callback, window){
     window = window || globalWindow;
     var id = window.name.split(":")[0];
-    var send = channel(id, callback, window, function (i, n, msg) {
+    var send = channel(id, callback, window, {contentWindow:window.parent}, function (i, n, msg) {
       window.parent.location.href =
         [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
     });
