@@ -9,19 +9,18 @@
 $(document).ready(function(){
   count = 0;
   xsschannel.log = true;
+//  window.postMessage = "none";
 
   send1 = xsschannel.connect("client.html", function(msg){
     $("pre").append("1: " + msg + "\n");
   });
   $("h2.first span").text(send1.url);
-  $(send1.iframe).show();
   $(".client.first").append(send1.iframe);
 
   send2 = xsschannel.connect("client.html", function(msg){
     $("pre").append("2: " + msg + "\n");
   });
   $("h2.second span").text(send2.url);
-  $(send2.iframe).show();
   $(".client.second").append(send2.iframe);
 });
 </script>

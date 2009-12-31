@@ -1,4 +1,70 @@
+============
+= OVERVIEW =
+============
+
+XssChannel is a library which allows you to securely communicate between 
+iframes from different domains. The library uses HTML5 postMessage if
+available or gracefully down-grades to cross site communication with
+iframe URL hashes and breaking large requests as described here: 
+http://softwareas.com/cross-domain-communication-with-iframes
 
 
-Related Libraries
- * http://code.google.com/p/xssinterface/
+=========
+= USAGE =
+=========
+
+There are two parts in order to establish communication between two
+pages (which may be on two different domains): Container page, and
+Remote Page.
+
+
+Container Page:
+---------------
+// Create a communication channel
+var send = xsschannel.connect("remotePageUrl", function(msg){
+  alert(msg);
+});
+// Add the remote iframe to the DOM tree
+document.body.appendChild(send.iframe);
+
+// Send a message to the remote page
+send("hello");
+
+To establish communication with a remote page use the connect()
+function. This will create a send method and an iframe. The
+iframe needs to be added to the page DOM before the communication
+channel can be used.
+
+To send a message simply call the send function().
+
+
+Remote Page:
+------------
+// Listen on remote requests
+var send = xsschannel.listen(function(msg){
+  alert(msg);
+});
+
+// send a message to a container page
+send("greetings");
+
+The remote page needs to expose itself for XSS communication with
+the listen method.
+
+
+=================
+= COMPATIBILITY =
+=================
+
+Our goal is to have compatibility with all first tier browsers:
+
+* Internet Explorer: v6.0 and higher
+* Safari:
+* FireFox:
+* Opera:
+
+
+====================
+= RELATED PROJECTS =
+====================
+* http://code.google.com/p/xssinterface/

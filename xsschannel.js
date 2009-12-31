@@ -168,7 +168,8 @@
   }
   
   function channel(id, callback, window, dstContainer, setHref) {
-    if (typeof window.postMessage == 'function') {
+    if (typeof window.postMessage == 'function' && 
+        (!dstContainer.contentWindow || typeof dstContainer.contentWindow.postMessage == 'function')) {
       return channelPostMessage(id, callback, window, dstContainer);
     } else {
       return channelHash(id, callback, window, setHref);
@@ -181,27 +182,28 @@
     var id = (""+window.Math.random()).substring(2);
     var name = id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
     var div = document.createElement('div') ;
-    div.innerHTML = '<iframe name="' + name + '" src="'+url+'#" style="display:none;">';
+    div.innerHTML = '<iframe name="' + name + '" src="'+url+'#">';
+    var seq = 0;
     var iframe = div.childNodes[0];
     
     var send = channel(id, callback, window, iframe, function(i , n , msg) {
-      send.iframe.src  = [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
+      send.iframe.src  = [send.url + "#" + PREFIX, send.id, (seq++), i , n, msg].join(":");
     });
-    send.seq = 0;
     send.url = url;
     send.iframe = iframe;
     return send;
   };
   
-  xsschannel.listen = function(callback, window){
+  xsschannel.listen = function(callback, window, allow){
     window = window || globalWindow;
-    var id = window.name.split(":")[0];
+    var idUrl = window.name.split(":");
+    var id = idUrl[0];
+    var seq = 0;
     var send = channel(id, callback, window, {contentWindow:window.parent}, function (i, n, msg) {
       window.parent.location.href =
-        [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
+        [send.url + "#" + PREFIX, send.id, (seq++), i , n, msg].join(":");
     });
-    send.seq = 0;
-    send.url = decodeURIComponent(window.name.split(":")[1]);
+    send.url = decodeURIComponent(idUrl[1]);
     return send;
   };
 })();
