@@ -8,24 +8,47 @@
 <script>
 $(document).ready(function(){
   count = 0;
-  send = xsschannel.connect("client.html", function(msg){
-    $("pre").append(msg + "\n");
+  xsschannel.log = true;
+
+  send1 = xsschannel.connect("client.html", function(msg){
+    $("pre").append("1: " + msg + "\n");
   });
-  $("h2 span").text(send.url);
-  $("#client").append(send.iframe);
+  $("h2.first span").text(send1.url);
+  $(".client.first").append(send1.iframe);
+
+  send2 = xsschannel.connect("client.html", function(msg){
+    $("pre").append("2: " + msg + "\n");
+  });
+  $("h2.second span").text(send2.url);
+  $(".client.second").append(send2.iframe);
 });
 </script>
   </head>
 <body>
   <h1>XSS Channel Testing Dashboard</h1>
   
-  <h2>Same origin on <span>?</span></h2>
-  <div id="client">
-    <div>
-      <button onclick="send('hello' + (count++))">Hello</button>
-      <button onclick="send('bye' + (count++))">Bye</button>
-    </div>
-  </div>
+  <table width="100%">
+    <tr>
+      <td>
+        <h2 class="first">Client 1: <span>?</span></h2>
+        <div class="client first">
+          <div>
+            <button onclick="send1('hello' + (count++))">Hello</button>
+            <button onclick="send1('bye' + (count++))">Bye</button>
+          </div>
+        </div>
+      </td>
+      <td>
+        <h2 class="second">Client 2: <span>?</span></h2>
+        <div class="client second">
+          <div>
+            <button onclick="send2('hello' + (count++))">Hello</button>
+            <button onclick="send2('bye' + (count++))">Bye</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
   <pre></pre>
 </body>
 </html>

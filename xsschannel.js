@@ -41,14 +41,17 @@
  */
 
 (function(){
-  xsschannel = {};
+  xsschannel = {
+    log: false
+  };
   var globalWindow = window;
   var PREFIX = "$XSS$";
-  var xssMessageListener = function(){};
   var delay = 20;
   var maxMsgSize = 1800;
+  var channels = {};
   function log(a, b) {
-    console.log(a, b);
+    if (typeof console == "object" && xsschannel.log)
+      console.log(a, b);
   }
   function parseHref(href) {
     var match = href.match(/^(.*)#\$XSS\$:(.*):(.*):(.*):(.*):(.*)$/);
@@ -71,7 +74,7 @@
         var hash = parseHref(href);
         log("CHANGE", href, hash);
         if (hash) {
-          xssMessageListener(hash);
+          channels[hash.id](hash);
           if (last.indexOf('#') < 0) {
             last += "#";
           }
@@ -84,7 +87,7 @@
     pull();
   }
   
-  function channel(callback, window, setHref) {
+  function channel(id, callback, window, setHref) {
     watchURL(window);
     var ACK = {};
     var queue = [];
@@ -125,11 +128,12 @@
       enqueue(msg);
       flush();
     };
+    send.id = id;
     send.expectedSeq = 0;
     send.queue = queue;
     send.pending = false;
     var part = "";
-    xssMessageListener = function(hash){
+    channels[id] = function(hash){
       log(hash, send.expectedSeq);
       if (hash.seq == send.expectedSeq) {
         send.expectedSeq ++;
@@ -152,10 +156,10 @@
   
   xsschannel.connect = function (url, callback, window) {
     window = window || globalWindow;
-    var send = channel(callback, window, function(i , n , msg) {
+    var id = (""+window.Math.random()).substring(2);
+    var send = channel(id, callback, window, function(i , n , msg) {
       send.iframe.src  = [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
     });
-    send.id = (""+window.Math.random()).substring(2);
     send.seq = 0;
     send.url = url;
     var name = send.id + ":" + encodeURIComponent(window.location.href.split('#')[0]);
@@ -169,13 +173,13 @@
   
   xsschannel.listen = function(callback, window){
     window = window || globalWindow;
-    var send = channel(callback, window, function (i, n, msg) {
+    var id = window.name.split(":")[0];
+    var send = channel(id, callback, window, function (i, n, msg) {
       window.parent.location.href =
         [send.url + "#" + PREFIX, send.id, (send.seq++), i , n, msg].join(":");
     });
     send.seq = 0;
     send.url = decodeURIComponent(window.name.split(":")[1]);
-    send.id = window.name.split(":")[0];
     return send;
   };
 })();
